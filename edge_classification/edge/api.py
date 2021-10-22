@@ -92,16 +92,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 target_item.updated = datetime.now()
                 target_item.save()
 
-                if self.is_machine_waiting:
-                    target_item.value += 1
-                    target_item.updated = datetime.now()
-                    target_item.save()
-
-                    process_message = {'sender': models.EDGE_CLASSIFICATION,
-                                       'title': 'Proceed to Storage',
-                                       'msg': ''}
-                    requests.post(settings['machine_classification_address'] + '/api/message/', data=process_message)
-
                 return Response(status=201)
 
             return Response({400: "Invalid Message Title"})
