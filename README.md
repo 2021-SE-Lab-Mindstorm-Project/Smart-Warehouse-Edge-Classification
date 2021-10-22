@@ -7,13 +7,11 @@ Messaging system gets the messages using Django REST framework.
 Messages from the others are considered as a data that can be stores in this edge server.
 Here are the lists of the messages that edge server receives.
 
-* Check capacity request (Classification Machine)
+* Check capacity request (Classification Machine) -> Classification progressed (Cloud)
 * Order processed acknowledgement (Repository Edge)
-* Store sensory data (Classification Machine)
+* Store sensory data (Classification Machine) -> Store sensory data (Cloud, every 15s)
   * `/sensory/` with `post` method
-
-For every 15 seconds, the classification machine sends the sensory data to the cloud server.
-You can change the settings in `CRONJOBS` of `edge_classification/edge_classification/settings.py`.
+  * You can change the settings in `CRONJOBS` of `edge_classification/edge_classification/settings.py`.
 
 
 ### Database
@@ -21,7 +19,7 @@ Database is based on the SQLite 3, with django. Here are the databases of the cl
 ### Inventory
 |Fields|Type|Choices|
 |-------|-----|-----|
-|item_type|Char|Red, White, Yellow|
+|item_type|Int|Red(1), White(2), Yellow(3)|
 |value|Int||
 |updated|Datetime||
 

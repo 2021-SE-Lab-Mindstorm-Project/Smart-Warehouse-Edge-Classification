@@ -51,7 +51,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     http_method_names = ['post']
 
-    @swagger_auto_schema(responses={400: "Bad request / Invalid Message Title / Invalid Message Sender"})
+    @swagger_auto_schema(responses={400: "Bad request / Invalid Message Title / Invalid Message Sender / Not allowed"})
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
         sender = request.data['sender']
@@ -63,7 +63,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 target_item = Inventory.objects.filter(id=item_type)[0]
                 if target_item.value == int(settings['maximum_capacity_repository']):
-                    return Response(status=400)
+                    return Response({400: 'Not allowed'})
 
                 else:
                     target_item.value += 1
@@ -75,7 +75,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                                        'msg': {'item_type': item_type}}
                     requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
 
-                    return Response(status=201)
+                    return Response({201: "Allowed"})
 
             return Response({400: "Invalid Message Title"})
 
