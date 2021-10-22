@@ -55,10 +55,9 @@ class MessageViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
         sender = request.data['sender']
+        title = request.data['title']
 
         if sender == models.MACHINE_CLASSIFICATION:
-            title = request.data['title']
-
             if title == 'Check Capacity':
                 item_type = int(request['msg']['item_type'])
 
@@ -72,7 +71,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                     target_item.save()
 
                     process_message = {'sender': models.EDGE_CLASSIFICATION,
-                                       'title': 'Proceed to Storage',
+                                       'title': 'Classification Processed',
                                        'msg': {'item_type': item_type}}
                     requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
 
@@ -81,8 +80,6 @@ class MessageViewSet(viewsets.ModelViewSet):
             return Response({400: "Invalid Message Title"})
 
         elif sender == models.EDGE_REPOSITORY:
-            title = request.data['title']
-
             if title == 'Order Processed':
                 item_type = request['msg']['item_type']
 
