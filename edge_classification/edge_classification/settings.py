@@ -15,7 +15,6 @@ import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Quick-start development settings - unsuitable for production
@@ -117,10 +116,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 CRONJOBS = [
-    ('* * * * *', 'edge.tasks.cron_task', ['send_sensory', 0], '>> ' + str(BASE_DIR) + '/cron.log'),
-    ('* * * * *', 'edge.tasks.cron_task', ['send_sensory', 15], '>> ' + str(BASE_DIR) + '/cron.log'),
-    ('* * * * *', 'edge.tasks.cron_task', ['send_sensory', 30], '>> ' + str(BASE_DIR) + '/cron.log'),
-    ('* * * * *', 'edge.tasks.cron_task', ['send_sensory', 45], '>> ' + str(BASE_DIR) + '/cron.log'),
+    ('* * * * *', 'edge.tasks.send_sensory', [0], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
+    ('* * * * *', 'edge.tasks.send_sensory', [15], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
+    ('* * * * *', 'edge.tasks.send_sensory', [30], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
+    ('* * * * *', 'edge.tasks.send_sensory', [45], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
 ]
 
 # Internationalization

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from edge_classification.settings import settings
 from . import models
-from .models import Sensory, Inventory, Message
+from .models import Sensory, Inventory, Message, Status
 
 
 # Serializer
@@ -46,24 +46,47 @@ class SensoryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, headers=headers)
 
 
+def initialize_inventory():
+    Inventory.objects.all().delete()
+    red_inventory = Inventory(item_type=1, value=0)
+    white_inventory = Inventory(item_type=2, value=0)
+    yellow_inventory = Inventory(item_type=3, value=0)
+
+    red_inventory.save()
+    white_inventory.save()
+    yellow_inventory.save()
+
+
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     http_method_names = ['post']
 
-    @swagger_auto_schema(responses={400: "Bad request / Invalid Message Title / Invalid Message Sender / Not allowed"})
+    @swagger_auto_schema(
+        responses={400: "Bad request", 204: "Invalid Message Title / Invalid Message Sender / Not allowed"})
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
-        sender = request.data['sender']
+        sender = int(request.data['sender'])
         title = request.data['title']
 
         if sender == models.MACHINE_CLASSIFICATION:
-            if title == 'Check Capacity':
-                item_type = int(request['msg']['item_type'])
+            if title == 'Running Check':
+                if len(Status.objects.all()) == 0:
+                    return Response("Not allowed", status=204)
 
-                target_item = Inventory.objects.filter(id=item_type)[0]
+                current_status = Status.objects.all()[0]
+
+                if current_status.status:
+                    return Response(status=201)
+
+                return Response("Not allowed", status=204)
+
+            if title == 'Check Capacity':
+                item_type = int(request.data['msg'])
+
+                target_item = Inventory.objects.filter(item_type=item_type)[0]
                 if target_item.value == int(settings['maximum_capacity_repository']):
-                    return Response({400: 'Not allowed'})
+                    return Response("Not allowed", status=204)
 
                 else:
                     target_item.value += 1
@@ -72,25 +95,48 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                     process_message = {'sender': models.EDGE_CLASSIFICATION,
                                        'title': 'Classification Processed',
-                                       'msg': {'item_type': item_type}}
+                                       'msg': item_type}
                     requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
+                    requests.post(settings['edge_repository_address'] + '/api/message/', data=process_message)
 
-                    return Response({201: "Allowed"})
+                    return Response("Allowed", status=201)
 
-            return Response({400: "Invalid Message Title"})
+            return Response("Invalid Message Title", status=204)
 
         elif sender == models.EDGE_REPOSITORY:
             if title == 'Order Processed':
-                item_type = request['msg']['item_type']
+                item_type = int(request.data['msg'])
 
                 # Modify Inventory DB
-                target_item = Inventory.objects.filter(id=item_type)[0]
+                target_item = Inventory.objects.filter(item_type=item_type)[0]
                 target_item.value -= 1
                 target_item.updated = datetime.now()
                 target_item.save()
 
                 return Response(status=201)
 
-            return Response({400: "Invalid Message Title"})
+            return Response("Invalid Message Title", status=204)
 
-        return Response({400: "Invalid Message Sender"})
+        elif sender == models.CLOUD:
+            if title == 'Start':
+                initialize_inventory()
+                if len(Status.objects.all()) == 0:
+                    current_state = Status()
+                else:
+                    current_state = Status.objects.all()[0]
+
+                current_state.status = True
+                current_state.save()
+                return Response(status=201)
+
+            if title == 'Stop':
+                if len(Status.objects.all()) == 0:
+                    current_state = Status()
+                else:
+                    current_state = Status.objects.all()[0]
+
+                current_state.status = False
+                current_state.save()
+                return Response(status=201)
+
+        return Response("Invalid Message Sender", status=204)
