@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 import requests
@@ -46,15 +47,11 @@ class SensoryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, headers=headers)
 
 
-def initialize_inventory():
-    Inventory.objects.all().delete()
-    red_inventory = Inventory(item_type=1, value=0)
-    white_inventory = Inventory(item_type=2, value=0)
-    yellow_inventory = Inventory(item_type=3, value=0)
+def find_good_dest(item_type):
+    if len(Inventory.objects.filter(stored=item_type)) > int(settings['maximum_capacity_repository']):
+        return None
 
-    red_inventory.save()
-    white_inventory.save()
-    yellow_inventory.save()
+    return item_type
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -84,22 +81,21 @@ class MessageViewSet(viewsets.ModelViewSet):
             if title == 'Check Capacity':
                 item_type = int(request.data['msg'])
 
-                target_item = Inventory.objects.filter(item_type=item_type)[0]
-                if target_item.value == int(settings['maximum_capacity_repository']):
+                stored = find_good_dest(item_type)
+
+                if stored is None:
                     return Response("Not allowed", status=204)
 
-                else:
-                    target_item.value += 1
-                    target_item.updated = datetime.now()
-                    target_item.save()
+                new_item = Inventory(item_type=item_type, stored=stored)
+                new_item.save()
 
-                    process_message = {'sender': models.EDGE_CLASSIFICATION,
-                                       'title': 'Classification Processed',
-                                       'msg': item_type}
-                    requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
-                    requests.post(settings['edge_repository_address'] + '/api/message/', data=process_message)
+                process_message = {'sender': models.EDGE_CLASSIFICATION,
+                                   'title': 'Classification Processed',
+                                   'msg': json.dumps({'item_type': item_type, 'stored': stored})}
+                requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
+                requests.post(settings['edge_repository_address'] + '/api/message/', data=process_message)
 
-                    return Response("Allowed", status=201)
+                return Response(stored, status=201)
 
             return Response("Invalid Message Title", status=204)
 
@@ -119,7 +115,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         elif sender == models.CLOUD:
             if title == 'Start':
-                initialize_inventory()
+                Inventory.objects.all().delete()
                 if len(Status.objects.all()) == 0:
                     current_state = Status()
                 else:
