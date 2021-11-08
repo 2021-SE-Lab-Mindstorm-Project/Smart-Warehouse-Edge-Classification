@@ -3,5 +3,6 @@
   "timezone": "Asia/Seoul",
   "cloud_address": "http://169.56.76.12",
   "edge_repository_address": "http://143.248.41.213",
-  "maximum_capacity_repository": 10
+  "maximum_capacity_repository": 10,
+  "anomaly_aware": 1
 }

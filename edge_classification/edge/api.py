@@ -7,9 +7,14 @@ from rest_framework import serializers, viewsets
 from rest_framework.response import Response
 
 from edge_classification.settings import settings
-from . import models
+from . import models, rl
 from .models import Sensory, Inventory, Message, Status
 
+if int(settings['anomaly_aware']) == 1:
+    rl_model = rl.DQN(6, path='../../a_rl_c.pth')
+else:
+    rl_model = rl.DQN(4, path='../../rl_c.pth')
+anomaly = [False, False]
 
 # Serializer
 class SensoryListSerializer(serializers.ListSerializer):
@@ -48,10 +53,22 @@ class SensoryViewSet(viewsets.ModelViewSet):
 
 
 def find_good_dest(item_type):
-    if len(Inventory.objects.filter(stored=item_type)) > int(settings['maximum_capacity_repository']):
-        return None
+    state = [item_type]
+    available = [True] * 4
+    for i in range(3):
+        stored_items = Inventory.objects.filter(stored=i)
+        if len(stored_items) == 0:
+            state.append(-1)
+        else:
+            state.append(stored_items[0].item_type)
 
-    return item_type
+        if len(stored_items) == settings["maximum_capacity_repository"]:
+            available[i] = False
+
+    if settings['anomaly_aware']:
+        state.extend(anomaly)
+
+    return rl_model.select_tactic(state, available)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -108,6 +125,18 @@ class MessageViewSet(viewsets.ModelViewSet):
                 target_item.value -= 1
                 target_item.updated = datetime.now()
                 target_item.save()
+
+                return Response(status=201)
+
+            elif title == 'Anomaly Occurred':
+                repo = int(request.data['msg'])
+                anomaly[repo] = True
+
+                return Response(status=201)
+
+            elif title == 'Anomaly Solved':
+                repo = int(request.data['msg'])
+                anomaly[repo] = False
 
                 return Response(status=201)
 
