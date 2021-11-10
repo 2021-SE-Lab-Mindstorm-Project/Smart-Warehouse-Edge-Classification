@@ -79,7 +79,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 response = requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
                 selected = int(response.text)
 
-                if selected == 4:
+                if selected == 3:
                     return Response("Not allowed", status=204)
 
                 new_item = Inventory(item_type=item_type, stored=selected)
