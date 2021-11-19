@@ -51,6 +51,8 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     http_method_names = ['post']
 
+    experiment_type = 'SAS'
+
     @swagger_auto_schema(
         responses={400: "Bad request", 204: "Invalid Message Title / Invalid Message Sender / Not allowed"})
     def create(self, request, *args, **kwargs):
@@ -73,11 +75,19 @@ class MessageViewSet(viewsets.ModelViewSet):
             if title == 'Check Capacity':
                 item_type = int(request.data['msg'])
 
-                process_message = {'sender': models.EDGE_CLASSIFICATION,
-                                   'title': 'Calculation Request',
-                                   'msg': item_type}
-                response = requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
-                selected = int(response.text)
+                if self.experiment_type == 'SAS':
+                    process_message = {'sender': models.EDGE_CLASSIFICATION,
+                                       'title': 'Calculation Request',
+                                       'msg': item_type}
+                    response = requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
+                    selected = int(response.text)
+                else:
+                    selected = item_type - 1
+                    if item_type == 4:
+                        selected = 2
+
+                    if len(Inventory.objects.filter(stored=selected)) == int(settings['maximum_capacity_repository']):
+                        selected = 3
 
                 if selected == 3:
                     return Response("Not allowed", status=204)
@@ -109,6 +119,8 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         elif sender == models.CLOUD:
             if title == 'Start':
+                self.experiment_type = request.data['msg']
+
                 Inventory.objects.all().delete()
                 if len(Status.objects.all()) == 0:
                     current_state = Status()

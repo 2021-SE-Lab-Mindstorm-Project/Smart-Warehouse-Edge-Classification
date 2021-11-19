@@ -70,5 +70,4 @@ class Message(models.Model):
 
 class Status(models.Model):
     status = models.BooleanField(default=False)
-    resumed = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=datetime.datetime.now)
