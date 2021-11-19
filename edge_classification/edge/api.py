@@ -10,6 +10,8 @@ from . import models
 from .models import Sensory, Inventory, Message, Status
 
 
+experiment_type = 'SAS'
+
 # Serializer
 class SensoryListSerializer(serializers.ListSerializer):
     def create(self, validated_data):
@@ -51,11 +53,10 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     http_method_names = ['post']
 
-    experiment_type = 'SAS'
-
     @swagger_auto_schema(
         responses={400: "Bad request", 204: "Invalid Message Title / Invalid Message Sender / Not allowed"})
     def create(self, request, *args, **kwargs):
+        global experiment_type
         super().create(request, *args, **kwargs)
         sender = int(request.data['sender'])
         title = request.data['title']
@@ -75,7 +76,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             if title == 'Check Capacity':
                 item_type = int(request.data['msg'])
 
-                if self.experiment_type == 'SAS':
+                if experiment_type == 'SAS':
                     process_message = {'sender': models.EDGE_CLASSIFICATION,
                                        'title': 'Calculation Request',
                                        'msg': item_type}
@@ -119,7 +120,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         elif sender == models.CLOUD:
             if title == 'Start':
-                self.experiment_type = request.data['msg']
+                experiment_type = request.data['msg']
 
                 Inventory.objects.all().delete()
                 if len(Status.objects.all()) == 0:
