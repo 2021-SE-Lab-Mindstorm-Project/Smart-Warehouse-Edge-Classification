@@ -78,7 +78,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 if experiment_type == 'SAS':
                     process_message = {'sender': models.EDGE_CLASSIFICATION,
-                                       'title': 'Calculation Request',
+                                       'title': 'SAS check',
                                        'msg': item_type}
                     response = requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
                     selected = int(response.text)
