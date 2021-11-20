@@ -81,6 +81,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                                        'title': 'SAS check',
                                        'msg': item_type}
                     response = requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
+                    if response.status_code == 204:
+                        Response("Invalid Message Title", status=204)
+
                     selected = int(response.text)
                 else:
                     selected = item_type - 1
