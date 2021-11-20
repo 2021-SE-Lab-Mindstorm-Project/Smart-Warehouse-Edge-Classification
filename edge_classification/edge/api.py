@@ -82,7 +82,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                                        'msg': item_type}
                     response = requests.post(settings['cloud_address'] + '/api/message/', data=process_message)
                     if response.status_code == 204:
-                        Response("Invalid Message Title", status=204)
+                        return Response("Not allowed", status=204)
 
                     selected = int(response.text)
                 else:
